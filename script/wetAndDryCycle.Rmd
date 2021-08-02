@@ -162,32 +162,32 @@ qiime feature-classifier classify-sklearn \
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate qiime2
 qiime tools export \
-  --input-path fastq370.97.seq.qza \
-  --output-path .
+  --input-path ../temp/fastq370.97.seq.qza \
+  --output-path ../temp/
 
 qiime tools export \
-  --input-path fastq370.97.table.qza \
-  --output-path .
+  --input-path ../temp/fastq370.97.table.qza \
+  --output-path ../temp/
   
-biom convert -i feature-table.biom \
-  -o feature-table.tsv --to-tsv
+biom convert -i ../temp/feature-table.biom \
+  -o ../temp/feature-table.tsv --to-tsv
   
 qiime tools export \
-  --input-path denovo.clustered.naive_bayes_taxonomy.qza \
-  --output-path .
+  --input-path ../temp/denovo.clustered.naive_bayes_taxonomy.qza \
+  --output-path ../temp/
 ```
 
 # Select OTU with more than 1 sequence
 
 ```{r}
 library(tidyverse)
-otu <- read.table("feature-table.tsv",header = T,
+otu <- read.table("../temp/feature-table.tsv",header = T,
                   sep = "\t",comment.char="",skip=1)
 colnames(otu)[1]<-"OTU.ID"
-tax <- read.table("taxonomy.tsv",
+tax <- read.table("../temp/taxonomy.tsv",
                   header = T,
                   sep = "\t")
-# 3 OTU without annotation
+# 22 OTU without annotation
 sum(tax$Taxon == "Unassigned")
 # tax<-tax[tax$Taxon != "Unassigned",]
 sum(is.na(tax$Taxon))
@@ -214,9 +214,9 @@ otuWithTax <- arrange(otuWithTax, desc(totalCount))
 otuWithTax$OTU.IX<-paste0("OTU",1:nrow(otuWithTax))
 otuWithTax<-otuWithTax[otuWithTax$totalCount > 1,]
 write.csv(otuWithTax,
-          "OTUByNaive_bayesSortByOneMore.csv",
+          "../table/OTUByNaive_bayesSortByOneMore.csv",
           row.names = F)
-# 6261 OTU with more than 1 sequences 
+# 7246 OTU with more than 1 sequences 
 sum(otuWithTax$totalCount > 1)
 ```
 
