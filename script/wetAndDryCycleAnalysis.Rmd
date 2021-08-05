@@ -1,0 +1,42 @@
+---
+title: "wetAndDryCycleAnalysis"
+author: "xyz"
+date: "2021/8/5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(stringr)
+```
+
+# Meta Data
+
+```{r}
+df<-read.table("../data/mapping.txt",header = F)
+info<-as.data.frame(str_split(df$V4,"-",simplify = T))
+nucleotide <- rep("DNA", 42)
+nucleotide[info$V1=="C"] <- "RNA"
+treatment<-str_sub(info$V2,1,1)
+treatment[treatment=="F"]<-"CK"
+treatment[treatment=="D"]<-"Dry"
+treatment[treatment=="W"]<-"Wet"
+week<-rep(rep(0:6,each=3),2)
+repeats<-rep(1:3,14)
+df2<-data.frame(
+  ID = paste0("J",df$V1),
+  Nucleotide = nucleotide,
+  Treatment = treatment,
+  Week = week,
+  Repeats = repeats
+)
+write.csv(
+  df2,
+  "../data/metadata2.csv",
+  row.names = F
+)
+```
+
