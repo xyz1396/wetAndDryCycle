@@ -38,5 +38,19 @@ write.csv(
   "../data/metadata2.csv",
   row.names = F
 )
+
+# sort by rank in otu table
+otu<-read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
+id<-colnames(otu)[2:43]
+meta<-read.csv("../data/metadata2.csv")
+rownames(meta)<-meta$ID
+meta<-meta[id,]
+meta<-t(meta)
+meta<-cbind(Group=rownames(meta),meta)
+write.csv(
+  meta,
+  "../temp/meta rank by otu table.csv",
+  row.names = F
+)
 ```
 
