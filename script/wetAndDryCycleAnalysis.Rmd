@@ -11,6 +11,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(stringr)
+library(xlsx)
+library(dplyr)
+library(tidyr)
 ```
 
 # Meta Data
@@ -38,19 +41,128 @@ write.csv(
   "../data/metadata2.csv",
   row.names = F
 )
+```
 
+# otu table with meta data
+
+```{r}
 # sort by rank in otu table
-otu<-read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
-id<-colnames(otu)[2:43]
-meta<-read.csv("../data/metadata2.csv")
-rownames(meta)<-meta$ID
-meta<-meta[id,]
-meta<-t(meta)
-meta<-cbind(Group=rownames(meta),meta)
-write.csv(
-  meta,
-  "../temp/meta rank by otu table.csv",
-  row.names = F
+otu <- read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
+id <- colnames(otu)[2:43]
+meta <- read.csv("../data/metadata2.csv")
+rownames(meta) <- meta$ID
+meta <- meta[id, ]
+meta <- t(meta)
+meta <- cbind(Group = rownames(meta), meta)
+write.csv(meta,
+          "../temp/meta rank by otu table.csv",
+          row.names = F)
+
+# sort otu table by rank in meta
+otu <- read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
+meta <- read.csv("../data/metadata2.csv")
+meta.t <- t(meta)
+otuRankbyMeta <- cbind(OTU.ID = otu$OTU.ID, otu[, meta$ID], otu[, 44:54])
+
+# nitrobacteria
+nitro <- unite(otuRankbyMeta, Tax, Kingdom:Species)
+nitro <- str_detect(str_to_lower(nitro$Tax), "nitro")
+nitro <- otuRankbyMeta[nitro, ]
+
+# nitrobacteria relative abundance
+nitroRelative <- prop.table(as.matrix(otuRankbyMeta[, 2:43]), 2) * 100
+nitroRelative <- cbind(OTU.ID = otu$OTU.ID, nitroRelative, otu[, 44:54])
+nitroRelative <-
+  nitroRelative[match(nitro$OTU.ID, nitroRelative$OTU.ID), ]
+
+# nitrobacteria relative abundance summary
+nitroSummary <- cbind(meta, t(nitroRelative[, 2:43]))
+nitroSummary <- nitroSummary[, c(-1, -5)]
+nitroSummary <- group_by(nitroSummary, Nucleotide, Treatment, Week)
+nitroSummary <- summarise(nitroSummary, across('21':'7037', mean))
+nitroSummary <- arrange(nitroSummary, Nucleotide, Week)
+metaSummary <- t(nitroSummary[, 1:3])
+nitroSummary <- t(nitroSummary[, -1:-3])
+colnames(nitroSummary) <- paste0("N", 1:ncol(nitroSummary))
+nitroSummary <-
+  cbind(OTU.ID = nitroRelative$OTU.ID, nitroSummary, nitroRelative[, 44:54])
+
+# write to xlsx
+wb <- createWorkbook(type = "xlsx")
+otuSheet <- createSheet(wb, sheetName = "All OTU")
+addDataFrame(
+  meta.t,
+  otuSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
 )
+addDataFrame(
+  otuRankbyMeta,
+  otuSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+nitroSheet <- createSheet(wb, sheetName = "Nitrobacteria OTU")
+addDataFrame(
+  meta.t,
+  nitroSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  nitro,
+  nitroSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+nitroRelativeSheet <-
+  createSheet(wb, sheetName = "Nitrobacteria Relavtive OTU")
+addDataFrame(
+  meta.t,
+  nitroRelativeSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  nitroRelative,
+  nitroRelativeSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+nitroSummarySheet <-
+  createSheet(wb, sheetName = "Nitrobacteria Relavtive Mean")
+addDataFrame(
+  metaSummary,
+  nitroSummarySheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  nitroSummary,
+  nitroSummarySheet,
+  startRow = 4,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+saveWorkbook(wb, "../table/OTUsummary.xlsx")
 ```
 
