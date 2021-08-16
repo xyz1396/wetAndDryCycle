@@ -1,5 +1,5 @@
 ---
-title: "wetAndDryCycleAnalysis"
+title: "wetAndDryCycleAnalysis output summary table"
 author: "xyz"
 date: "2021/8/5"
 output: html_document
