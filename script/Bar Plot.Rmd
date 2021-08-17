@@ -1,0 +1,259 @@
+---
+title: "Bar Plot"
+author: "xyz"
+date: "2021/8/16"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(readxl)
+library(stringr)
+library(tidyr)
+library(patchwork)
+library(RColorBrewer)
+```
+
+
+```{r}
+otu <- read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
+meta <- read.csv("../data/metadata2.csv")
+meta$Treatment[meta$Treatment=="CK"] <- "Wet"
+meta$Time<-rep(rep(c("F1","D1","F2", "D2", "F3", "D3", "F4"),each=3),2)
+```
+
+# Phylum
+
+```{r}
+otuRankbyMeta <-
+  cbind(OTU.ID = otu$OTU.ID, otu[, meta$ID], otu[, 44:54])
+
+phylum <- unite(otuRankbyMeta, Tax, Kingdom:Phylum, sep = ";")
+phylum <- phylum[, 2:44]
+phylum <- group_by(phylum, Tax)
+phylum <- summarise(phylum, across(J3:J46, sum))
+
+phylumSummary <-
+  cbind.data.frame(Nucleotide = meta$Nucleotide,
+                   Time = meta$Time,
+                   t(phylum[, 2:43]))
+phylumSummary <- group_by(phylumSummary, Nucleotide, Time)
+phylumSummary <- summarise(phylumSummary, across("1":"67", sum))
+phylumSummary[,-1:-2] <-
+  prop.table(as.matrix(phylumSummary[,-1:-2]), 1) * 100
+colnames(phylumSummary)[-1:-2] <- phylum$Tax
+phylumSummary <-
+  pivot_longer(
+    phylumSummary,
+    "d__Archaea;NA":"Unassigned;NA",
+    names_to = "Phylum",
+    values_to = "Abundance"
+  )
+phylumSummary$Phylum <-
+  str_sub(str_split(
+    phylumSummary$Phylum,
+    pattern = ";",
+    simplify = T
+  )[, 2], 4)
+
+top10 <- phylumSummary[, 3:4]
+top10 <- group_by(top10, Phylum)
+top10 <- summarise(top10, Abundance = sum(Abundance))
+top10 <- arrange(top10, desc(Abundance))
+top10 <- top10$Phylum[1:10]
+phylumSummary$Phylum[!(phylumSummary$Phylum %in% top10)] <- "Others"
+phylumSummary$Phylum <-
+  factor(phylumSummary$Phylum, levels = rev(c(top10, "Others")))
+phylumSummary <- group_by(phylumSummary, Phylum, Nucleotide, Time)
+phylumSummary <-
+  summarise(phylumSummary, Abundance = sum(Abundance))
+phylumSummary$Time <-
+  factor(phylumSummary$Time,
+         levels = c("F1", "D1", "F2", "D2", "F3", "D3", "F4"))
+write.csv(phylumSummary,"../table/phylumSummary.csv", row.names = F)
+
+p <- ggplot(phylumSummary[phylumSummary$Nucleotide == "DNA", ]) +
+  geom_bar(
+    aes(Time, Abundance, fill = Phylum),
+    stat = "identity",
+    width = 0.5,
+    color = "black"
+  ) +
+  # coord_flip() +
+  theme(text = element_text(size = 10)) +
+  ylab("Abundance (%)") +
+  theme(
+    text = element_text(size = 15),
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_rect(
+      fill = NA,
+      color = "grey10",
+      linetype = 1,
+      size = 1.
+    )
+  )
+p + ggsave("../figure/Phylum DNA abundance barplot.pdf",
+           width = 8,
+           height = 6)
+pDNA <- p
+
+p <- ggplot(phylumSummary[phylumSummary$Nucleotide == "RNA", ]) +
+  geom_bar(
+    aes(Time, Abundance, fill = Phylum),
+    stat = "identity",
+    width = 0.5,
+    color = "black"
+  ) +
+  # coord_flip() +
+  theme(text = element_text(size = 10)) +
+  ylab("Abundance (%)") +
+  theme(
+    text = element_text(size = 15),
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_rect(
+      fill = NA,
+      color = "grey10",
+      linetype = 1,
+      size = 1.
+    )
+  )
+p + ggsave("../figure/Phylum RNA abundance barplot.pdf",
+           width = 8,
+           height = 6)
+
+pRNA <-p
+
+(pDNA + ggtitle("DNA")) +
+  # change ggplot plate color
+  scale_fill_manual(values=rev(brewer.pal(11, "Paired")))+
+  (pRNA+ggtitle("RNA")) +
+  scale_fill_manual(values=rev(brewer.pal(11, "Paired")))+
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels= 'A')+
+  ggsave("../figure/All Phylum abundance barplot.pdf",
+         width = 15,
+         height = 6)
+```
+
+# Genus
+
+```{r}
+otuRankbyMeta <-
+  cbind(OTU.ID = otu$OTU.ID, otu[, meta$ID], otu[, 44:54])
+
+Genus <- unite(otuRankbyMeta, Tax, Kingdom:Genus, sep = ";")
+Genus <- Genus[, 2:44]
+Genus <- group_by(Genus, Tax)
+Genus <- summarise(Genus, across(J3:J46, sum))
+
+GenusSummary <-
+  cbind.data.frame(Nucleotide = meta$Nucleotide,
+                   Time = meta$Time,
+                   t(Genus[, -1]))
+GenusSummary <- group_by(GenusSummary, Nucleotide, Time)
+GenusSummary <- summarise(GenusSummary, across(everything(), sum))
+GenusSummary[,-1:-2] <-
+  prop.table(as.matrix(GenusSummary[,-1:-2]), 1) * 100
+colnames(GenusSummary)[-1:-2] <- Genus$Tax
+GenusSummary <-
+  pivot_longer(
+    GenusSummary,
+    !c(Nucleotide,Time),
+    names_to = "Genus",
+    values_to = "Abundance"
+  )
+GenusSummary$Genus <-
+  str_sub(str_split(
+    GenusSummary$Genus,
+    pattern = ";",
+    simplify = T
+  )[, 6], 4)
+
+top10 <- GenusSummary[, 3:4]
+top10 <- group_by(top10, Genus)
+top10 <- summarise(top10, Abundance = sum(Abundance))
+top10 <- arrange(top10, desc(Abundance))
+# first 1:2 are unassigned
+top10 <- top10$Genus[3:12]
+GenusSummary$Genus[!(GenusSummary$Genus %in% top10)] <- "Others"
+GenusSummary$Genus <-
+  factor(GenusSummary$Genus, levels = rev(c(top10, "Others")))
+GenusSummary <- group_by(GenusSummary, Genus, Nucleotide, Time)
+GenusSummary <-
+  summarise(GenusSummary, Abundance = sum(Abundance))
+GenusSummary$Time <-
+  factor(GenusSummary$Time,
+         levels = c("F1", "D1", "F2", "D2", "F3", "D3", "F4"))
+write.csv(GenusSummary,"../table/GenusSummary.csv", row.names = F)
+
+p <- ggplot(GenusSummary[GenusSummary$Nucleotide == "DNA", ]) +
+  geom_bar(
+    aes(Time, Abundance, fill = Genus),
+    stat = "identity",
+    width = 0.5,
+    color = "black"
+  ) +
+  # coord_flip() +
+  theme(text = element_text(size = 10)) +
+  ylab("Abundance (%)") +
+  theme(
+    text = element_text(size = 15),
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_rect(
+      fill = NA,
+      color = "grey10",
+      linetype = 1,
+      size = 1.
+    )
+  )
+p + ggsave("../figure/Genus DNA abundance barplot.pdf",
+           width = 8,
+           height = 6)
+pDNA <- p
+
+p <- ggplot(GenusSummary[GenusSummary$Nucleotide == "RNA", ]) +
+  geom_bar(
+    aes(Time, Abundance, fill = Genus),
+    stat = "identity",
+    width = 0.5,
+    color = "black"
+  ) +
+  # coord_flip() +
+  theme(text = element_text(size = 10)) +
+  ylab("Abundance (%)") +
+  theme(
+    text = element_text(size = 15),
+    panel.grid = element_blank(),
+    panel.background = element_blank(),
+    panel.border = element_rect(
+      fill = NA,
+      color = "grey10",
+      linetype = 1,
+      size = 1.
+    )
+  )
+p + ggsave("../figure/Genus RNA abundance barplot.pdf",
+           width = 8,
+           height = 6)
+
+pRNA <-p
+
+(pDNA + ggtitle("DNA")) +
+  scale_fill_manual(values=rev(brewer.pal(11, "Paired")))+
+  (pRNA+ggtitle("RNA")) +
+  scale_fill_manual(values=rev(brewer.pal(11, "Paired")))+
+  plot_layout(ncol = 2) +
+  plot_annotation(tag_levels= 'A')+
+  ggsave("../figure/All Genus abundance barplot.pdf",
+         width = 15,
+         height = 6)
+```
+
