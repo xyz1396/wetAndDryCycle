@@ -150,6 +150,8 @@ drawDf$Genus[!(drawDf$Genus %in% names(topGenus))] <- "Others"
 drawDf$Genus <- str_remove(drawDf$Genus, "g__")
 drawDf <- arrange(drawDf, Phylum, Class, Order, Family, Genus)
 drawDf$num <- 1:nrow(drawDf)
+write.csv(drawDf,
+          "../table/DNA otu with significant different abundance2.csv")
 
 p <- ggplot(drawDf,
             aes(
@@ -240,6 +242,8 @@ drawDf$Genus[!(drawDf$Genus %in% names(topGenus))] <- "Others"
 drawDf$Genus <- str_remove(drawDf$Genus, "g__")
 drawDf <- arrange(drawDf, Phylum, Class, Order, Family, Genus)
 drawDf$num <- 1:nrow(drawDf)
+write.csv(drawDf,
+          "../table/RNA otu with significant different abundance2.csv")
 
 p <- ggplot(drawDf,
             aes(

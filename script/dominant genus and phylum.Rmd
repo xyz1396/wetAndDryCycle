@@ -1,0 +1,66 @@
+---
+title: "dominant genus and phylum"
+author: "xyz"
+date: "2021/8/18"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+otu <- read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
+meta <- read.csv("../data/metadata2.csv")
+meta$Treatment[meta$Treatment=="CK"] <- "Wet"
+meta$Time<-rep(rep(c("F1","D1","F2", "D2", "F3", "D3", "F4"),each=3),2)
+
+DNA<-meta$ID[meta$Nucleotide=="DNA"]
+# 6649
+sum(rowSums(otu[, DNA])>0)
+RNA<-meta$ID[meta$Nucleotide=="RNA"]
+# 3349
+sum(rowSums(otu[, RNA])>0)
+
+DNA<-meta$ID[meta$Nucleotide=="DNA"]
+DNA<-rowSums(otu[, DNA])
+DNA<-DNA/sum(DNA)*100
+# 384
+(domainDNA<-sum(DNA>0.05 & otu$Kingdom!="Unassigned"))
+domainDNAid<-otu$OTU.ID[DNA>0.05 & otu$Kingdom!="Unassigned"]
+RNA<-meta$ID[meta$Nucleotide=="RNA"]
+RNA<-rowSums(otu[, RNA])
+RNA<-RNA/sum(RNA)*100
+# 371
+(domainRNA<-sum(RNA>0.05 & otu$Kingdom!="Unassigned"))
+domainRNAid<-otu$OTU.ID[RNA>0.05 & otu$Kingdom!="Unassigned"]
+
+DNA<-meta$ID[meta$Nucleotide=="DNA"]
+# 5.781391%
+domainDNA/sum(rowSums(otu[otu$Kingdom!="Unassigned", DNA])>0)*100
+RNA<-meta$ID[meta$Nucleotide=="RNA"]
+# 11.12444%
+domainRNA/sum(rowSums(otu[otu$Kingdom!="Unassigned", RNA])>0)*100
+
+
+DNAsintab<-read.csv(
+  "../table/DNA otu with significant different abundance2.csv",
+  header = T,
+  row.names = 1
+)
+# 35
+nrow(DNAsintab)
+RNAsintab<-read.csv(
+  "../table/RNA otu with significant different abundance2.csv",
+  header = T,
+  row.names = 1
+)
+# 58
+nrow(RNAsintab)
+
+# 21
+sum(rownames(DNAsintab) %in% domainDNAid)
+# 36
+sum(rownames(RNAsintab) %in% domainRNAid)
+```
+
