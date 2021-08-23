@@ -1,0 +1,243 @@
+---
+title: "methylo nitroso wetAndDryCycleAnalysis  output summary table.Rmd"
+author: "xyz"
+date: "2021/8/5"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(stringr)
+library(xlsx)
+library(dplyr)
+library(tidyr)
+library(Biostrings)
+```
+
+# nitroso summary
+
+```{r}
+fasta<-readDNAStringSet("../temp/dna-sequences.fasta")
+
+# sort otu table by rank in meta
+otu <- read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
+meta <- read.csv("../data/metadata2.csv")
+meta.t <- t(meta)
+otuRankbyMeta <- cbind(OTU.ID = otu$OTU.ID, otu[, meta$ID], otu[, 44:54])
+
+# nitrosobacteria
+nitroso <- unite(otuRankbyMeta, Tax, Kingdom:Species)
+nitroso <- str_detect(str_to_lower(nitroso$Tax), "nitroso")
+nitroso <- otuRankbyMeta[nitroso, ]
+
+# nitrosobacteria relative abundance
+nitrosoRelative <- prop.table(as.matrix(otuRankbyMeta[, 2:43]), 2) * 100
+nitrosoRelative <- cbind(OTU.ID = otu$OTU.ID, nitrosoRelative, otu[, 44:54])
+nitrosoRelative <-
+  nitrosoRelative[match(nitroso$OTU.ID, nitrosoRelative$OTU.ID), ]
+
+# nitrosobacteria relative abundance summary
+nitrosoSummary <- cbind(meta, t(nitrosoRelative[, 2:43]))
+nitrosoSummary <- nitrosoSummary[, c(-1, -5)]
+nitrosoSummary <- group_by(nitrosoSummary, Nucleotide, Treatment, Week)
+nitrosoSummary <- summarise(nitrosoSummary, across(everything(), mean))
+nitrosoSummary <- arrange(nitrosoSummary, Nucleotide, Week)
+metaSummary <- t(nitrosoSummary[, 1:3])
+nitrosoSummary <- t(nitrosoSummary[, -1:-3])
+colnames(nitrosoSummary) <- paste0("N", 1:ncol(nitrosoSummary))
+nitrosoSummary <-
+  cbind(OTU.ID = nitrosoRelative$OTU.ID, nitrosoSummary, nitrosoRelative[, 44:54])
+
+nitrosoDNA<-fasta[nitrosoSummary$OTU.ID]
+writeXStringSet(nitrosoDNA,"../temp/nitrosoDNA.fasta")
+
+# write to xlsx
+wb <- createWorkbook(type = "xlsx")
+otuSheet <- createSheet(wb, sheetName = "All OTU")
+addDataFrame(
+  meta.t,
+  otuSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  otuRankbyMeta,
+  otuSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+nitrosoSheet <- createSheet(wb, sheetName = "nitrosobacteria OTU")
+addDataFrame(
+  meta.t,
+  nitrosoSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  nitroso,
+  nitrosoSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+nitrosoRelativeSheet <-
+  createSheet(wb, sheetName = "nitrosobacteria Relavtive OTU")
+addDataFrame(
+  meta.t,
+  nitrosoRelativeSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  nitrosoRelative,
+  nitrosoRelativeSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+nitrosoSummarySheet <-
+  createSheet(wb, sheetName = "nitrosobacteria Relavtive Mean")
+addDataFrame(
+  metaSummary,
+  nitrosoSummarySheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  nitrosoSummary,
+  nitrosoSummarySheet,
+  startRow = 4,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+saveWorkbook(wb, "../table/nitrosoOTUsummary.xlsx")
+```
+
+# methylo summary
+
+```{r}
+# methylobacteria
+methylo <- unite(otuRankbyMeta, Tax, Kingdom:Species)
+methylo <- str_detect(str_to_lower(methylo$Tax), "methylo")
+methylo <- otuRankbyMeta[methylo, ]
+
+# methylobacteria relative abundance
+methyloRelative <- prop.table(as.matrix(otuRankbyMeta[, 2:43]), 2) * 100
+methyloRelative <- cbind(OTU.ID = otu$OTU.ID, methyloRelative, otu[, 44:54])
+methyloRelative <-
+  methyloRelative[match(methylo$OTU.ID, methyloRelative$OTU.ID), ]
+
+# methylobacteria relative abundance summary
+methyloSummary <- cbind(meta, t(methyloRelative[, 2:43]))
+methyloSummary <- methyloSummary[, c(-1, -5)]
+methyloSummary <- group_by(methyloSummary, Nucleotide, Treatment, Week)
+methyloSummary <- summarise(methyloSummary, across(everything(), mean))
+methyloSummary <- arrange(methyloSummary, Nucleotide, Week)
+metaSummary <- t(methyloSummary[, 1:3])
+methyloSummary <- t(methyloSummary[, -1:-3])
+colnames(methyloSummary) <- paste0("N", 1:ncol(methyloSummary))
+methyloSummary <-
+  cbind(OTU.ID = methyloRelative$OTU.ID, methyloSummary, methyloRelative[, 44:54])
+
+methyloDNA<-fasta[methyloSummary$OTU.ID]
+writeXStringSet(methyloDNA,"../temp/methyloDNA.fasta")
+
+# write to xlsx
+wb <- createWorkbook(type = "xlsx")
+otuSheet <- createSheet(wb, sheetName = "All OTU")
+addDataFrame(
+  meta.t,
+  otuSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  otuRankbyMeta,
+  otuSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+methyloSheet <- createSheet(wb, sheetName = "methylobacteria OTU")
+addDataFrame(
+  meta.t,
+  methyloSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  methylo,
+  methyloSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+methyloRelativeSheet <-
+  createSheet(wb, sheetName = "methylobacteria Relavtive OTU")
+addDataFrame(
+  meta.t,
+  methyloRelativeSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  methyloRelative,
+  methyloRelativeSheet,
+  startRow = 6,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+methyloSummarySheet <-
+  createSheet(wb, sheetName = "methylobacteria Relavtive Mean")
+addDataFrame(
+  metaSummary,
+  methyloSummarySheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  methyloSummary,
+  methyloSummarySheet,
+  startRow = 4,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+saveWorkbook(wb, "../table/methyloOTUsummary.xlsx")
+```
+

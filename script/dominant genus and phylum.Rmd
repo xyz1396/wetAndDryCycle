@@ -62,5 +62,37 @@ nrow(RNAsintab)
 sum(rownames(DNAsintab) %in% domainDNAid)
 # 36
 sum(rownames(RNAsintab) %in% domainRNAid)
+
+DNA<-meta$ID[meta$Nucleotide=="DNA"]
+genusDNA<-otu[rowSums(otu[, DNA])>1 & !is.na(otu$Genus),]
+# 0.5493562%
+sum(rownames(DNAsintab) %in% genusDNA$OTU.ID) / nrow(genusDNA) * 100
+RNA<-meta$ID[meta$Nucleotide=="RNA"]
+genusRNA<-otu[rowSums(otu[, RNA])>1 & !is.na(otu$Genus),]
+# 1.74002%
+sum(rownames(RNAsintab) %in% genusRNA$OTU.ID) / nrow(genusRNA) * 100
+
+ID <-
+  c(
+    "78d5de4558f92e50e8f24220e9c5e1da",
+    "89c3b03498a8964a6b8c710f4b6a8799",
+    "619d6035eb5a8bc02ca283ad8a922098",
+    "78548e0bc766c94cc310b8e18497b7bc"
+  )
+# 可分类
+idOtuDNA<-sum(otu[otu$OTU.ID %in% ID,DNA])
+# 0.8297644 %
+idOtuDNA/sum(genusDNA[,DNA])*100
+idOtuRNA<-sum(otu[otu$OTU.ID %in% ID,RNA])
+# 1.095939 %
+idOtuRNA/sum(genusRNA[,RNA])*100
+# 可分类+不可分类
+idOtuDNA<-sum(otu[otu$OTU.ID %in% ID,DNA])
+# 0.758769 %
+idOtuDNA/sum(otu[,DNA])*100
+idOtuRNA<-sum(otu[otu$OTU.ID %in% ID,RNA])
+# 0.9960372 %
+idOtuRNA/sum(otu[,RNA])*100
+
 ```
 
