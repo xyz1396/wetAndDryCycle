@@ -10,7 +10,16 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
+library(tidyr)
+library(dplyr)
+```
+
+# Genus
+
+```{r}
 otu <- read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
+# 7246
+nrow(otu)
 meta <- read.csv("../data/metadata2.csv")
 meta$Treatment[meta$Treatment=="CK"] <- "Wet"
 meta$Time<-rep(rep(c("F1","D1","F2", "D2", "F3", "D3", "F4"),each=3),2)
@@ -94,5 +103,55 @@ idOtuRNA<-sum(otu[otu$OTU.ID %in% ID,RNA])
 # 0.9960372 %
 idOtuRNA/sum(otu[,RNA])*100
 
+```
+
+# phylum
+
+```{r}
+otu <- read.csv("../table/OTUByNaive_bayesSortByOneMore.csv")
+meta <- read.csv("../data/metadata2.csv")
+meta$Treatment[meta$Treatment=="CK"] <- "Wet"
+meta$Time<-rep(rep(c("F1","D1","F2", "D2", "F3", "D3", "F4"),each=3),2)
+
+# 63
+length(unique(otu$Phylum[!is.na(otu$Phylum)]))
+
+DNA<-meta$ID[meta$Nucleotide=="DNA"]
+DNAphylum<-cbind(otu[, DNA],Phylum=otu$Phylum)
+DNAphylum<-DNAphylum[rowSums(otu[, DNA])>0,]
+# 62
+length(unique(DNAphylum$Phylum[!is.na(DNAphylum$Phylum)]))
+
+RNA<-meta$ID[meta$Nucleotide=="RNA"]
+RNAphylum<-cbind(otu[, RNA],Phylum=otu$Phylum)
+RNAphylum<-RNAphylum[rowSums(otu[, RNA])>0,]
+# 50
+length(unique(RNAphylum$Phylum[!is.na(RNAphylum$Phylum)]))
+
+phylum<-data.frame(Abundance=rowSums(otu[, 2:43]),Phylum=otu$Phylum)
+phylum<-phylum[!is.na(phylum$Phylum),]
+phylum<-group_by(phylum,Phylum)
+phylum<-summarise(phylum,across(everything(),sum))
+phylum$Abundance<-phylum$Abundance/sum(phylum$Abundance)*100
+dominantPhylum<-phylum$Phylum[phylum$Abundance>2]
+
+otuRankbyMeta <-
+  cbind(OTU.ID = otu$OTU.ID, otu[, meta$ID], Phylum=otu$Phylum)
+otuRankbyMeta <- otuRankbyMeta[!is.na(otuRankbyMeta$Phylum),]
+phylum <- otuRankbyMeta[, 2:44]
+phylum <- group_by(phylum, Phylum)
+phylum <- summarise(phylum, across(everything(), sum))
+
+phylumSummary <-
+  cbind.data.frame(Nucleotide = meta$Nucleotide,
+                   Time = meta$Time,
+                   t(phylum[, 2:43]))
+phylumSummary <- group_by(phylumSummary, Nucleotide, Time)
+phylumSummary <- summarise(phylumSummary, across(everything(), sum))
+colnames(phylumSummary)[-1:-2] <- phylum$Phylum
+phylumInEachTreat<-colSums(phylumSummary[,-1:-2]>0)==nrow(phylumSummary)
+phylumInEachTreat<-colnames(phylumSummary[,-1:-2])[phylumInEachTreat]
+# 8
+length(intersect(dominantPhylum,phylumInEachTreat))
 ```
 

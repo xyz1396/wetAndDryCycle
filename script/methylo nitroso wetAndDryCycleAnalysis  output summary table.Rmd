@@ -11,6 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(stringr)
+options(java.parameters = "-Xmx8000m")
 library(xlsx)
 library(dplyr)
 library(tidyr)
@@ -50,6 +51,18 @@ nitrosoSummary <- t(nitrosoSummary[, -1:-3])
 colnames(nitrosoSummary) <- paste0("N", 1:ncol(nitrosoSummary))
 nitrosoSummary <-
   cbind(OTU.ID = nitrosoRelative$OTU.ID, nitrosoSummary, nitrosoRelative[, 44:54])
+
+# nitrosobacteria relative abundance SD
+nitrosoSD <- cbind(meta, t(nitrosoRelative[, 2:43]))
+nitrosoSD <- nitrosoSD[, c(-1, -5)]
+nitrosoSD <- group_by(nitrosoSD, Nucleotide, Treatment, Week)
+nitrosoSD <- summarise(nitrosoSD, across(everything(), sd))
+nitrosoSD <- arrange(nitrosoSD, Nucleotide, Week)
+metaSD <- t(nitrosoSD[, 1:3])
+nitrosoSD <- t(nitrosoSD[, -1:-3])
+colnames(nitrosoSD) <- paste0("N", 1:ncol(nitrosoSD))
+nitrosoSD <-
+  cbind(OTU.ID = nitrosoRelative$OTU.ID, nitrosoSD, nitrosoRelative[, 44:54])
 
 nitrosoDNA<-fasta[nitrosoSummary$OTU.ID]
 writeXStringSet(nitrosoDNA,"../temp/nitrosoDNA.fasta")
@@ -130,6 +143,25 @@ addDataFrame(
   col.names = T
 )
 
+nitrosoSDSheet <-
+  createSheet(wb, sheetName = "nitrosobacteria Relavtive SD")
+addDataFrame(
+  metaSD,
+  nitrosoSDSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  nitrosoSD,
+  nitrosoSDSheet,
+  startRow = 4,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
 saveWorkbook(wb, "../table/nitrosoOTUsummary.xlsx")
 ```
 
@@ -138,7 +170,8 @@ saveWorkbook(wb, "../table/nitrosoOTUsummary.xlsx")
 ```{r}
 # methylobacteria
 methylo <- unite(otuRankbyMeta, Tax, Kingdom:Species)
-methylo <- str_detect(str_to_lower(methylo$Tax), "methylo")
+methylo <- str_detect(str_to_lower(methylo$Tax), "methylo") |
+  str_detect(str_to_lower(methylo$Tax), "methano")
 methylo <- otuRankbyMeta[methylo, ]
 
 # methylobacteria relative abundance
@@ -159,7 +192,19 @@ colnames(methyloSummary) <- paste0("N", 1:ncol(methyloSummary))
 methyloSummary <-
   cbind(OTU.ID = methyloRelative$OTU.ID, methyloSummary, methyloRelative[, 44:54])
 
-methyloDNA<-fasta[methyloSummary$OTU.ID]
+# methylobacteria relative abundance SD
+methyloSD <- cbind(meta, t(methyloRelative[, 2:43]))
+methyloSD <- methyloSD[, c(-1, -5)]
+methyloSD <- group_by(methyloSD, Nucleotide, Treatment, Week)
+methyloSD <- summarise(methyloSD, across(everything(), sd))
+methyloSD <- arrange(methyloSD, Nucleotide, Week)
+metaSD <- t(methyloSD[, 1:3])
+methyloSD <- t(methyloSD[, -1:-3])
+colnames(methyloSD) <- paste0("N", 1:ncol(methyloSD))
+methyloSD <-
+  cbind(OTU.ID = methyloRelative$OTU.ID, methyloSD, methyloRelative[, 44:54])
+
+methyloDNA<-fasta[methyloSD$OTU.ID]
 writeXStringSet(methyloDNA,"../temp/methyloDNA.fasta")
 
 # write to xlsx
@@ -232,6 +277,25 @@ addDataFrame(
 addDataFrame(
   methyloSummary,
   methyloSummarySheet,
+  startRow = 4,
+  startColumn = 1,
+  row.names = F,
+  col.names = T
+)
+
+methyloSDSheet <-
+  createSheet(wb, sheetName = "methylobacteria Relavtive SD")
+addDataFrame(
+  metaSD,
+  methyloSDSheet,
+  startRow = 1,
+  startColumn = 1,
+  row.names = T,
+  col.names = F
+)
+addDataFrame(
+  methyloSD,
+  methyloSDSheet,
   startRow = 4,
   startColumn = 1,
   row.names = F,

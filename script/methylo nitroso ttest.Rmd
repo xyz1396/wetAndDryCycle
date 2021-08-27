@@ -1,0 +1,280 @@
+---
+title: "methylo nitroso ttest"
+author: "xyz"
+date: "2021/8/23"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(readxl)
+library(purrr)
+library(ggplot2)
+library(ggsignif)
+library(ggpubr)
+library(tidyr)
+library(dplyr)
+```
+
+# nitroso DNA
+
+```{r}
+nitroso <-
+  read_xlsx("../table/nitrosoOTUsummary.xlsx", sheet = "nitrosobacteria Relavtive OTU")
+
+nitrosoDf <- t(nitroso)
+colnames(nitrosoDf) <- nitrosoDf[1, ]
+nitrosoDf <- nitrosoDf[-1, ]
+nitrosoDf <- as.data.frame(na.omit(nitrosoDf[nitrosoDf[, 1] == "DNA", ]))
+nitrosoDf[, -1:-5] <- apply(nitrosoDf[, -1:-5], 2, as.numeric)
+nitrosoDf$Treatment[nitrosoDf$Treatment == "CK"] <- "Wet"
+
+nitrosoTax <- nitroso[-1:-4, -2:-43]
+colnames(nitrosoTax) <- nitrosoTax[1, ]
+nitrosoTax <- nitrosoTax[-1, ]
+
+diff1 <- nitrosoDf %>%
+  select_if(is.numeric) %>%
+  map_df(~ broom::tidy(t.test(. ~ Treatment, data = nitrosoDf)), .id = 'var')
+diff1.filter <- diff1 %>% filter(p.value < 0.05)
+
+diff1.abundance <- nitrosoDf[, diff1.filter$var]
+diff1.abundance <-
+  cbind(Treatment = nitrosoDf$Treatment, diff1.abundance)
+diff1.abundance <-
+  pivot_longer(diff1.abundance,
+               -Treatment,
+               values_to = "Abundance",
+               names_to = "ID")
+diff1.abundance <-
+  left_join(diff1.abundance, nitrosoTax, by = c("ID" = "OTU.ID"))
+diff1.abundance$Tax <-
+  paste(diff1.abundance$Phylum, diff1.abundance$Genus, sep = ";")
+
+diff1.summary<-group_by(diff1.abundance[,1:3],ID,Treatment)
+diff1.summary<-summarise(diff1.summary,Average=mean(Abundance),SD=sd(Abundance))
+diff1.summary<-left_join(diff1.summary, diff1.filter,by = c("ID" = "var"))
+diff1.summary<-left_join(diff1.summary, nitrosoTax,by = c("ID" = "OTU.ID"))
+write.csv(diff1.summary,"../table/nitrosoDNATtest.csv",row.names = F)
+
+p <-
+  ggbarplot(
+    diff1.abundance,
+    x = "Treatment",
+    y = "Abundance",
+    fill = "Tax",
+    add = 'mean_sd',
+    position = position_dodge(0.8),
+    width = 0.6,
+    size = 1,
+    legend = 'right',
+    facet.by = c("ID")
+  )
+
+p <- p + geom_signif(
+  comparisons = list(c("Wet", "Dry")),
+  test = "t.test",
+  map_signif_level = TRUE,
+  margin_top = -0.4,
+  textsize = 3
+)
+p
+```
+
+# nitroso RNA
+
+```{r}
+nitroso <-
+  read_xlsx("../table/nitrosoOTUsummary.xlsx", sheet = "nitrosobacteria Relavtive OTU")
+
+nitrosoDf <- t(nitroso)
+colnames(nitrosoDf) <- nitrosoDf[1, ]
+nitrosoDf <- nitrosoDf[-1, ]
+nitrosoDf <- as.data.frame(na.omit(nitrosoDf[nitrosoDf[, 1] == "RNA", ]))
+nitrosoDf[, -1:-5] <- apply(nitrosoDf[, -1:-5], 2, as.numeric)
+nitrosoDf$Treatment[nitrosoDf$Treatment == "CK"] <- "Wet"
+
+nitrosoTax <- nitroso[-1:-4, -2:-43]
+colnames(nitrosoTax) <- nitrosoTax[1, ]
+nitrosoTax <- nitrosoTax[-1, ]
+
+diff1 <- nitrosoDf %>%
+  select_if(is.numeric) %>%
+  map_df(~ broom::tidy(t.test(. ~ Treatment, data = nitrosoDf)), .id = 'var')
+diff1.filter <- diff1 %>% filter(p.value < 0.05)
+
+diff1.abundance <- nitrosoDf[, diff1.filter$var]
+diff1.abundance <-
+  cbind(Treatment = nitrosoDf$Treatment, diff1.abundance)
+diff1.abundance <-
+  pivot_longer(diff1.abundance,
+               -Treatment,
+               values_to = "Abundance",
+               names_to = "ID")
+diff1.abundance <-
+  left_join(diff1.abundance, nitrosoTax, by = c("ID" = "OTU.ID"))
+diff1.abundance$Tax <-
+  paste(diff1.abundance$Phylum, diff1.abundance$Genus, sep = ";")
+
+diff1.summary<-group_by(diff1.abundance[,1:3],ID,Treatment)
+diff1.summary<-summarise(diff1.summary,Average=mean(Abundance),SD=sd(Abundance))
+diff1.summary<-left_join(diff1.summary, diff1.filter,by = c("ID" = "var"))
+diff1.summary<-left_join(diff1.summary, nitrosoTax,by = c("ID" = "OTU.ID"))
+write.csv(diff1.summary,"../table/nitrosoRNATtest.csv",row.names = F)
+
+p <-
+  ggbarplot(
+    diff1.abundance,
+    x = "Treatment",
+    y = "Abundance",
+    fill = "Tax",
+    add = 'mean_sd',
+    position = position_dodge(0.8),
+    width = 0.6,
+    size = 1,
+    legend = 'right',
+    facet.by = c("ID")
+  )
+
+p <- p + geom_signif(
+  comparisons = list(c("Wet", "Dry")),
+  test = "t.test",
+  map_signif_level = TRUE,
+  margin_top = -0.4,
+  textsize = 3
+)
+p
+```
+
+# methylo DNA
+
+```{r}
+methylo <-
+  read_xlsx("../table/methyloOTUsummary.xlsx", sheet = "methylobacteria Relavtive OTU")
+
+methyloDf <- t(methylo)
+colnames(methyloDf) <- methyloDf[1, ]
+methyloDf <- methyloDf[-1, ]
+methyloDf <- as.data.frame(na.omit(methyloDf[methyloDf[, 1] == "DNA", ]))
+methyloDf[, -1:-5] <- apply(methyloDf[, -1:-5], 2, as.numeric)
+methyloDf$Treatment[methyloDf$Treatment == "CK"] <- "Wet"
+
+methyloTax <- methylo[-1:-4, -2:-43]
+colnames(methyloTax) <- methyloTax[1, ]
+methyloTax <- methyloTax[-1, ]
+
+diff1 <- methyloDf %>%
+  select_if(is.numeric) %>%
+  map_df(~ broom::tidy(t.test(. ~ Treatment, data = methyloDf)), .id = 'var')
+diff1.filter <- diff1 %>% filter(p.value < 0.05)
+
+diff1.abundance <- methyloDf[, diff1.filter$var]
+diff1.abundance <-
+  cbind(Treatment = methyloDf$Treatment, diff1.abundance)
+diff1.abundance <-
+  pivot_longer(diff1.abundance,
+               -Treatment,
+               values_to = "Abundance",
+               names_to = "ID")
+diff1.abundance <-
+  left_join(diff1.abundance, methyloTax, by = c("ID" = "OTU.ID"))
+diff1.abundance$Tax <-
+  paste(diff1.abundance$Phylum, diff1.abundance$Genus, sep = ";")
+
+diff1.summary<-group_by(diff1.abundance[,1:3],ID,Treatment)
+diff1.summary<-summarise(diff1.summary,Average=mean(Abundance),SD=sd(Abundance))
+diff1.summary<-left_join(diff1.summary, diff1.filter,by = c("ID" = "var"))
+diff1.summary<-left_join(diff1.summary, methyloTax,by = c("ID" = "OTU.ID"))
+write.csv(diff1.summary,"../table/methyloDNATtest.csv",row.names = F)
+
+p <-
+  ggbarplot(
+    diff1.abundance,
+    x = "Treatment",
+    y = "Abundance",
+    fill = "Tax",
+    add = 'mean_sd',
+    position = position_dodge(0.8),
+    width = 0.6,
+    size = 1,
+    legend = 'right',
+    facet.by = c("ID")
+  )
+
+p <- p + geom_signif(
+  comparisons = list(c("Wet", "Dry")),
+  test = "t.test",
+  map_signif_level = TRUE,
+  margin_top = -0.4,
+  textsize = 3
+)
+p
+```
+
+# methylo RNA
+
+```{r}
+methylo <-
+  read_xlsx("../table/methyloOTUsummary.xlsx", sheet = "methylobacteria Relavtive OTU")
+
+methyloDf <- t(methylo)
+colnames(methyloDf) <- methyloDf[1, ]
+methyloDf <- methyloDf[-1, ]
+methyloDf <- as.data.frame(na.omit(methyloDf[methyloDf[, 1] == "RNA", ]))
+methyloDf[, -1:-5] <- apply(methyloDf[, -1:-5], 2, as.numeric)
+methyloDf$Treatment[methyloDf$Treatment == "CK"] <- "Wet"
+
+methyloTax <- methylo[-1:-4, -2:-43]
+colnames(methyloTax) <- methyloTax[1, ]
+methyloTax <- methyloTax[-1, ]
+
+diff1 <- methyloDf %>%
+  select_if(is.numeric) %>%
+  map_df(~ broom::tidy(t.test(. ~ Treatment, data = methyloDf)), .id = 'var')
+diff1.filter <- diff1 %>% filter(p.value < 0.05)
+
+diff1.abundance <- methyloDf[, diff1.filter$var]
+diff1.abundance <-
+  cbind(Treatment = methyloDf$Treatment, diff1.abundance)
+diff1.abundance <-
+  pivot_longer(diff1.abundance,
+               -Treatment,
+               values_to = "Abundance",
+               names_to = "ID")
+diff1.abundance <-
+  left_join(diff1.abundance, methyloTax, by = c("ID" = "OTU.ID"))
+diff1.abundance$Tax <-
+  paste(diff1.abundance$Phylum, diff1.abundance$Genus, sep = ";")
+
+diff1.summary<-group_by(diff1.abundance[,1:3],ID,Treatment)
+diff1.summary<-summarise(diff1.summary,Average=mean(Abundance),SD=sd(Abundance))
+diff1.summary<-left_join(diff1.summary, diff1.filter,by = c("ID" = "var"))
+diff1.summary<-left_join(diff1.summary, methyloTax,by = c("ID" = "OTU.ID"))
+write.csv(diff1.summary,"../table/methyloRNATtest.csv",row.names = F)
+
+p <-
+  ggbarplot(
+    diff1.abundance,
+    x = "Treatment",
+    y = "Abundance",
+    fill = "Tax",
+    add = 'mean_sd',
+    position = position_dodge(0.8),
+    width = 0.6,
+    size = 1,
+    legend = 'right',
+    facet.by = c("ID")
+  )
+
+p <- p + geom_signif(
+  comparisons = list(c("Wet", "Dry")),
+  test = "t.test",
+  map_signif_level = TRUE,
+  margin_top = -0.4,
+  textsize = 3
+)
+p
+```
